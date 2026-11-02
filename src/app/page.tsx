@@ -1,69 +1,193 @@
-import Image from "next/image";
 
-export default function Home() {
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+type Stats = {
+  tasks: number;
+  completedTasks: number;
+  goals: number;
+  events: number;
+  shopping: number;
+  routines: number;
+};
+
+const cards = [
+  { name: "Objetivos", path: "/objetivos", icon: "🎯" },
+  { name: "Tarefas", path: "/tarefas", icon: "✅" },
+  { name: "Rotinas", path: "/rotinas", icon: "🔁" },
+  { name: "Calendário", path: "/calendario", icon: "📅" },
+  { name: "Compras", path: "/compras", icon: "🛒" },
+  { name: "Treino", path: "/treino", icon: "🏋️" },
+  { name: "Alimentação", path: "/alimentacao", icon: "🥗" },
+  { name: "Lista de desejos", path: "/desejos", icon: "⭐" },
+  { name: "Viagens", path: "/viagens", icon: "✈️" },
+  { name: "Finanças", path: "/financas", icon: "💰" },
+];
+
+export default function Dashboard() {
+  const [stats, setStats] = useState<Stats>({
+    tasks: 0,
+    completedTasks: 0,
+    goals: 0,
+    events: 0,
+    shopping: 0,
+    routines: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    async function loadDashboard() {
+      const { data: userData } = await supabase.auth.getUser();
+
+      if (!userData.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      setEmail(userData.user.email ?? "");
+
+      const [
+        tasksResult,
+        completedResult,
+        goalsResult,
+        eventsResult,
+        shoppingResult,
+        routinesResult,
+      ] = await Promise.all([
+        supabase.from("tasks").select("*", { count: "exact", head: true }),
+        supabase.from("tasks").select("*", { count: "exact", head: true }).eq("completed", true),
+        supabase.from("goals").select("*", { count: "exact", head: true }),
+        supabase.from("events").select("*", { count: "exact", head: true }),
+        supabase.from("shopping_items").select("*", { count: "exact", head: true }).eq("purchased", false),
+        supabase.from("routines").select("*", { count: "exact", head: true }),
+      ]);
+
+      setStats({
+        tasks: tasksResult.count ?? 0,
+        completedTasks: completedResult.count ?? 0,
+        goals: goalsResult.count ?? 0,
+        events: eventsResult.count ?? 0,
+        shopping: shoppingResult.count ?? 0,
+        routines: routinesResult.count ?? 0,
+      });
+
+      setLoading(false);
+    }
+
+    loadDashboard();
+  }, []);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
+  const pendingTasks = stats.tasks - stats.completedTasks;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main style={{
+      minHeight: "100vh",
+      background: "#0b0f17",
+      color: "#ffffff",
+      padding: "35px",
+      fontFamily: "Arial, sans-serif",
+    }}>
+      <div style={{
+        maxWidth: "1100px",
+        margin: "0 auto",
+      }}>
+        <header style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "15px",
+          marginBottom: "35px",
+        }}>
+          <div>
+            <h1 style={{ fontSize: "32px", margin: 0 }}>
+              Life Manager
+            </h1>
+            <p style={{ color: "#9ca3af" }}>
+              Bem-vindo{email ? `, ${email}` : ""}!
+            </p>
+          </div>
+
+          <button onClick={logout} style={{
+            background: "#202938",
+            color: "white",
+            border: "1px solid #374151",
+            borderRadius: "10px",
+            padding: "11px 18px",
+            cursor: "pointer",
+          }}>
+            Terminar sessão
+          </button>
+        </header>
+
+        <h2 style={{ marginBottom: "18px" }}>Resumo geral</h2>
+
+        {loading ? (
+          <p style={{ color: "#9ca3af" }}>A carregar os teus dados...</p>
+        ) : (
+          <section style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "15px",
+            marginBottom: "40px",
+          }}>
+            {[
+              ["Tarefas pendentes", pendingTasks],
+              ["Tarefas concluídas", stats.completedTasks],
+              ["Objetivos", stats.goals],
+              ["Próximas marcações", stats.events],
+              ["Itens por comprar", stats.shopping],
+              ["Rotinas", stats.routines],
+            ].map(([label, value]) => (
+              <div key={label} style={{
+                background: "#151c29",
+                border: "1px solid #263244",
+                borderRadius: "14px",
+                padding: "22px",
+              }}>
+                <p style={{ color: "#9ca3af", margin: 0 }}>{label}</p>
+                <strong style={{ fontSize: "32px" }}>{value}</strong>
+              </div>
+            ))}
+          </section>
+        )}
+
+        <h2 style={{ marginBottom: "18px" }}>As minhas áreas</h2>
+
+        <section style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+          gap: "15px",
+        }}>
+          {cards.map((card) => (
+            <Link key={card.path} href={card.path} style={{
+              background: "#151c29",
+              border: "1px solid #263244",
+              borderRadius: "14px",
+              padding: "22px",
+              color: "white",
+              textDecoration: "none",
+              display: "block",
+            }}>
+              <span style={{ fontSize: "28px" }}>{card.icon}</span>
+              <h3 style={{ marginBottom: 0 }}>{card.name}</h3>
+              <p style={{ color: "#9ca3af", fontSize: "13px" }}>
+                Abrir área →
+              </p>
+            </Link>
+          ))}
+        </section>
+      </div>
+    </main>
   );
 }

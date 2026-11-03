@@ -15,14 +15,19 @@ type Meal = {
 export default function MealsPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [name, setName] = useState("");
-const [mealType, setMealType] = useState("Almoço");
-const [mealDate, setMealDate] = useState("");
-
-useEffect(() => {
-  setMealDate(new Date().toLocaleDateString("en-CA"));
-}, []);
+  const [mealType, setMealType] = useState("Almoço");
+  const [mealDate, setMealDate] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
+    setMealDate(`${year}-${month}-${day}`);
+  }, []);
 
   async function loadMeals() {
     const { data, error } = await supabase
@@ -32,6 +37,7 @@ useEffect(() => {
 
     if (error) alert("Erro ao carregar refeições: " + error.message);
     else setMeals((data ?? []) as Meal[]);
+
     setLoading(false);
   }
 
@@ -41,9 +47,10 @@ useEffect(() => {
 
   async function addMeal(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !mealDate) return;
 
     const { data: userData } = await supabase.auth.getUser();
+
     if (!userData.user) {
       alert("Inicia sessão novamente.");
       return;
@@ -70,13 +77,19 @@ useEffect(() => {
   async function deleteMeal(id: string) {
     if (!confirm("Queres apagar esta refeição?")) return;
 
-    const { error } = await supabase.from("meals").delete().eq("id", id);
+    const { error } = await supabase
+      .from("meals")
+      .delete()
+      .eq("id", id);
+
     if (error) alert("Erro ao apagar refeição: " + error.message);
     else loadMeals();
   }
 
-const today = mealDate;
-const todayMeals = meals.filter((meal) => meal.meal_date === today);
+  const today = mealDate;
+  const todayMeals = meals.filter(
+    (meal) => meal.meal_date === today
+  );
 
   return (
     <main className="page-container">
@@ -84,7 +97,9 @@ const todayMeals = meals.filter((meal) => meal.meal_date === today);
         <div>
           <p className="eyebrow">BEM-ESTAR</p>
           <h1>Alimentação</h1>
-          <p className="muted">Regista e organiza as tuas refeições.</p>
+          <p className="muted">
+            Regista e organiza as tuas refeições.
+          </p>
         </div>
       </div>
 
@@ -93,6 +108,7 @@ const todayMeals = meals.filter((meal) => meal.meal_date === today);
           <span className="muted">Refeições registadas</span>
           <strong>{meals.length}</strong>
         </div>
+
         <div className="stat-card">
           <span className="muted">Refeições de hoje</span>
           <strong>{todayMeals.length}</strong>
@@ -101,6 +117,7 @@ const todayMeals = meals.filter((meal) => meal.meal_date === today);
 
       <section className="panel">
         <h2>Registar refeição</h2>
+
         <form onSubmit={addMeal} className="form-grid">
           <input
             placeholder="Ex.: Frango com arroz"
@@ -111,7 +128,10 @@ const todayMeals = meals.filter((meal) => meal.meal_date === today);
 
           <label className="field-label">
             Tipo de refeição
-            <select value={mealType} onChange={(e) => setMealType(e.target.value)}>
+            <select
+              value={mealType}
+              onChange={(e) => setMealType(e.target.value)}
+            >
               <option>Pequeno-almoço</option>
               <option>Lanche da manhã</option>
               <option>Almoço</option>
@@ -137,33 +157,49 @@ const todayMeals = meals.filter((meal) => meal.meal_date === today);
             onChange={(e) => setNotes(e.target.value)}
           />
 
-          <button className="primary-button" type="submit">Guardar refeição</button>
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={!mealDate}
+          >
+            Guardar refeição
+          </button>
         </form>
       </section>
 
       <section className="panel">
         <h2>Histórico de refeições</h2>
-        {loading ? <p className="muted">A carregar...</p> :
-          meals.length === 0 ? (
-            <p className="empty-state">Ainda não tens refeições registadas.</p>
-          ) : (
-            <div className="item-list">
-              {meals.map((meal) => (
-                <article className="task-item" key={meal.id}>
-                  <div>
-                    <strong>{meal.name}</strong>
-                    <p className="muted">
-                      {meal.meal_type} · {meal.meal_date}
-                    </p>
-                    {meal.notes && <p className="muted">{meal.notes}</p>}
-                  </div>
-                  <button className="danger-button" onClick={() => deleteMeal(meal.id)}>
-                    Apagar
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
+
+        {loading ? (
+          <p className="muted">A carregar...</p>
+        ) : meals.length === 0 ? (
+          <p className="empty-state">
+            Ainda não tens refeições registadas.
+          </p>
+        ) : (
+          <div className="item-list">
+            {meals.map((meal) => (
+              <article className="task-item" key={meal.id}>
+                <div>
+                  <strong>{meal.name}</strong>
+                  <p className="muted">
+                    {meal.meal_type} · {meal.meal_date}
+                  </p>
+                  {meal.notes && (
+                    <p className="muted">{meal.notes}</p>
+                  )}
+                </div>
+
+                <button
+                  className="danger-button"
+                  onClick={() => deleteMeal(meal.id)}
+                >
+                  Apagar
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

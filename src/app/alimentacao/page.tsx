@@ -15,10 +15,12 @@ type Meal = {
 export default function MealsPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [name, setName] = useState("");
-  const [mealType, setMealType] = useState("Almoço");
-  const [mealDate, setMealDate] = useState(
-    new Date().toLocaleDateString("en-CA")
-  );
+const [mealType, setMealType] = useState("Almoço");
+const [mealDate, setMealDate] = useState("");
+
+useEffect(() => {
+  setMealDate(new Date().toLocaleDateString("en-CA"));
+}, []);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
 

@@ -75,8 +75,8 @@ useEffect(() => {
     else loadMeals();
   }
 
-  const today = new Date().toLocaleDateString("en-CA");
-  const todayMeals = meals.filter((meal) => meal.meal_date === today);
+const today = mealDate;
+const todayMeals = meals.filter((meal) => meal.meal_date === today);
 
   return (
     <main className="page-container">
